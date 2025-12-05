@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Product, CartItem, SaleRecord } from '../types';
 import { dbService } from '../services/dbService';
-import { ShoppingCart, Plus, Minus, DollarSign, Calculator, Trash } from 'lucide-react';
+import { ShoppingCart, Plus, Minus, DollarSign, Calculator, Trash, Search } from 'lucide-react';
 
 export const SalesCalculator: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
@@ -73,7 +73,8 @@ export const SalesCalculator: React.FC = () => {
   };
 
   const filteredProducts = products.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) && p.stock > 0
+    (p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+     p.sku.toLowerCase().includes(searchTerm.toLowerCase())) && p.stock > 0
   );
 
   return (
@@ -82,13 +83,16 @@ export const SalesCalculator: React.FC = () => {
       {/* Product Selector */}
       <div className="lg:col-span-2 flex flex-col gap-4 h-full">
         <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-           <input 
-            type="text" 
-            placeholder="搜索商品添加..." 
-            className="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
+           <div className="relative">
+             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+             <input 
+              type="text" 
+              placeholder="搜索商品名称或 SKU 编码..." 
+              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+           </div>
         </div>
         
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 flex-1 overflow-y-auto p-4">

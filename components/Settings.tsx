@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '../services/dbService';
 import { DbConfig } from '../types';
-import { Database, Server, Save, CheckCircle2, AlertCircle, Lock, ShieldCheck, Key, Globe, Network } from 'lucide-react';
+import { Database, Server, Save, CheckCircle2, AlertCircle, Lock, ShieldCheck, Key, Globe, Network, UserCog } from 'lucide-react';
 
 export const Settings: React.FC = () => {
   // Auth State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+
+  // Password Change State
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [pwdMessage, setPwdMessage] = useState<{text: string, type: 'success' | 'error' | ''}>({ text: '', type: '' });
 
   // Config State
   const [config, setConfig] = useState<DbConfig>({
@@ -37,7 +42,8 @@ export const Settings: React.FC = () => {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === 'admin') {
+    const storedPwd = dbService.getAdminPassword();
+    if (password === storedPwd) {
       setIsAuthenticated(true);
       sessionStorage.setItem('admin_auth', 'true');
       setError('');
@@ -56,6 +62,26 @@ export const Settings: React.FC = () => {
       setStatus('success');
       setTimeout(() => setStatus('idle'), 3000);
     }, 1500);
+  };
+
+  const handleUpdatePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 4) {
+      setPwdMessage({ text: '新密码长度至少需4位', type: 'error' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setPwdMessage({ text: '两次输入的新密码不一致', type: 'error' });
+      return;
+    }
+
+    dbService.setAdminPassword(newPassword);
+    setPwdMessage({ text: '管理员密码已成功更新！', type: 'success' });
+    setNewPassword('');
+    setConfirmPassword('');
+    
+    // Clear message after 3s
+    setTimeout(() => setPwdMessage({ text: '', type: '' }), 3000);
   };
 
   if (!isAuthenticated) {
@@ -93,7 +119,7 @@ export const Settings: React.FC = () => {
               验证身份
             </button>
           </form>
-          <p className="text-xs text-slate-300 mt-6">演示密码: admin</p>
+          <p className="text-xs text-slate-300 mt-6">默认密码: admin</p>
         </div>
       </div>
     );
@@ -110,11 +136,62 @@ export const Settings: React.FC = () => {
           onClick={() => {
             setIsAuthenticated(false);
             sessionStorage.removeItem('admin_auth');
+            setPassword('');
           }}
           className="text-sm px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 text-slate-600 font-medium transition-colors"
         >
           退出登录
         </button>
+      </div>
+
+      {/* Account Security (Password Change) */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b border-slate-100 bg-slate-50 flex items-center gap-3">
+          <UserCog className="text-orange-600" />
+          <h3 className="font-bold text-slate-800">账户安全</h3>
+        </div>
+        <div className="p-6">
+          <form onSubmit={handleUpdatePassword} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">新密码</label>
+                <input 
+                  type="password" 
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="输入新密码"
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none" 
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-500 uppercase">确认新密码</label>
+                <input 
+                  type="password" 
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="再次输入新密码"
+                  className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none" 
+                />
+              </div>
+            </div>
+            
+            {pwdMessage.text && (
+               <div className={`text-sm flex items-center gap-2 ${pwdMessage.type === 'success' ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  {pwdMessage.type === 'success' ? <CheckCircle2 size={16}/> : <AlertCircle size={16}/>}
+                  {pwdMessage.text}
+               </div>
+            )}
+
+            <div className="flex justify-end">
+              <button 
+                type="submit"
+                className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg text-sm font-bold transition-colors shadow-sm"
+              >
+                更新密码
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       {/* Security & AI Configuration */}

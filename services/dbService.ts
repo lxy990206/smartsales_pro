@@ -7,6 +7,7 @@ const STORAGE_KEYS = {
   PRODUCTS: 'smartsales_products',
   SALES: 'smartsales_sales',
   CONFIG: 'smartsales_db_config',
+  ADMIN_PWD: 'smartsales_admin_pwd',
 };
 
 // Seed data
@@ -32,6 +33,15 @@ export const dbService = {
 
   saveConfig: (config: DbConfig): void => {
     localStorage.setItem(STORAGE_KEYS.CONFIG, JSON.stringify(config));
+  },
+
+  // Auth
+  getAdminPassword: (): string => {
+    return localStorage.getItem(STORAGE_KEYS.ADMIN_PWD) || 'admin';
+  },
+
+  setAdminPassword: (pwd: string): void => {
+    localStorage.setItem(STORAGE_KEYS.ADMIN_PWD, pwd);
   },
 
   // Products
@@ -87,6 +97,32 @@ export const dbService = {
     // Update stock for each item
     for (const item of sale.items) {
       await dbService.updateStock(item.productId, item.quantity);
+    }
+  },
+
+  updateSale: async (updatedSale: SaleRecord): Promise<void> => {
+    const sales = await dbService.getSales();
+    const index = sales.findIndex(s => s.id === updatedSale.id);
+    if (index !== -1) {
+      // NOTE: For this version, we only support editing Revenue/Date/Notes.
+      // Editing items (quantities) is disabled in the UI to prevent complex stock sync issues.
+      sales[index] = updatedSale;
+      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(sales));
+    }
+  },
+
+  deleteSale: async (id: string): Promise<void> => {
+    const sales = await dbService.getSales();
+    const saleToDelete = sales.find(s => s.id === id);
+    
+    if (saleToDelete) {
+      // Restore stock
+      for (const item of saleToDelete.items) {
+        await dbService.updateStock(item.productId, -item.quantity);
+      }
+      
+      const filtered = sales.filter(s => s.id !== id);
+      localStorage.setItem(STORAGE_KEYS.SALES, JSON.stringify(filtered));
     }
   }
 };
